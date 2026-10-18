@@ -1,0 +1,32 @@
+name: Manual Bot Run
+
+on:
+  workflow_dispatch: # زرار التشغيل اليدوي
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360 # 6 ساعات كحد أقصى (تقدر توقفه يدوياً في أي وقت)
+    
+    strategy:
+      max-parallel: 1 # (للتجربة) جهاز واحد بس دلوقتي
+      matrix:
+        job_id: [1] # (للتجربة) جهاز واحد بس
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          
+      - name: Install Dependencies & Playwright
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libnspr4 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          playwright install chromium
+          
+      - name: Run Script
+        run: python script.py
