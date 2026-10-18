@@ -16,7 +16,7 @@ ANDROID_CHROME_UAS = [
 ]
 
 TOTAL_BATCHES = 9999999
-BATCH_SIZE = 10  # (غيرها لـ 60 لما تبقى جاهز للتشغيل الكبير)
+BATCH_SIZE = 50  # (غيرها لـ 60 لما تبقى جاهز للتشغيل الكبير)
 SESSION_TIMEOUT = 18
 
 success_count = 0
