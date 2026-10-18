@@ -1,17 +1,17 @@
 name: Manual Bot Run
 
 on:
-  workflow_dispatch: # زرار التشغيل اليدوي
+  workflow_dispatch:
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 360 # 6 ساعات كحد أقصى (تقدر توقفه يدوياً في أي وقت)
+    timeout-minutes: 360
     
     strategy:
-      max-parallel: 1 # (للتجربة) جهاز واحد بس دلوقتي
+      max-parallel: 1
       matrix:
-        job_id: [1] # (للتجربة) جهاز واحد بس
+        job_id: [1]
 
     steps:
       - uses: actions/checkout@v4
@@ -27,6 +27,9 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
           playwright install chromium
+
+      - name: Collect Workflow Telemetry
+        uses: runforesight/workflow-telemetry-action@v1
           
       - name: Run Script
-        run: python script.py
+        run: python -u script.py
