@@ -2,7 +2,7 @@ import asyncio, random, string
 from playwright.async_api import async_playwright
 
 TARGET_URLS = [
-    "https://matrixzone-v2.netlify.app/",
+    "https://matrixzone-hub.pages.dev/",
     "https://matrixzone-hub.pages.dev/",
 ]
 
