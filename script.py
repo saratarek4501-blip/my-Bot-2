@@ -1,13 +1,15 @@
 import asyncio, random, string
+from urllib.parse import urlparse
 from playwright.async_api import async_playwright
 
 TARGET_URLS = [
-    "https://matrixzone-hub.pages.dev/",
-    "https://matrixzone-hub.pages.dev/",
+    "http://p.npcad.com/go/506348/758750",
+    "http://p.npcad.com/go/506348/758751"
 ]
 
+# 👇 البروكسي بتاعك هنا
 PROXIES = [
-    "http://hdvnc9rccm:0fm2h5qecc@Lite.flashproxy.io:6969"
+    "http://qrl3m07935:97e22fy0f8@lite.flashproxy.io:6969"
 ]
 
 ANDROID_CHROME_UAS = [
@@ -16,33 +18,18 @@ ANDROID_CHROME_UAS = [
 ]
 
 TOTAL_BATCHES = 9999999
-BATCH_SIZE = 50  # (غيرها لـ 60 لما تبقى جاهز للتشغيل الكبير)
-SESSION_TIMEOUT = 18
+BATCH_SIZE = 100 # جيت هاب يقدر يشيل ده بسهولة
+SESSION_TIMEOUT = 15
 
 success_count = 0
 fail_count = 0
 counter_lock = asyncio.Lock()
 
-async def main_page_optimize(route):
+async def optimize(route):
     try:
-        rtype = route.request.resource_type
-        url = route.request.url
-        if rtype in ["document", "script"]:
-            return await route.continue_()
-        if rtype in ["xhr", "fetch"]:
-            if "matrixzone" in url or "show.js" in url or "p.npcad.com" in url:
-                return await route.continue_()
-        return await route.abort()
-    except Exception:
-        try: await route.abort()
-        except: pass
-
-async def popup_strict_optimize(route):
-    try:
-        rtype = route.request.resource_type
-        if rtype == "document":
-            return await route.continue_()
-        return await route.abort()
+        if route.request.resource_type in ["image", "media", "font", "stylesheet", "script", "ping", "eventsource", "xhr", "fetch", "other"]:
+            return await route.abort()
+        await route.continue_()
     except Exception:
         try: await route.abort()
         except: pass
@@ -50,13 +37,13 @@ async def popup_strict_optimize(route):
 async def run_session(browser, session_id, url, proxy):
     global success_count, fail_count
     context = None
-    fail_reason = "Unknown"
     try:
+        # إعدادات البروكسي مع إضافة جلسة عشوائية لتغيير الـ IP
         proto, rest = proxy.split("://", 1)
         creds, endpoint = rest.split("@", 1)
         salt = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
         u, pw = creds.split(":", 1) if ":" in creds else (creds, "")
-
+        
         proxy_config = {
             "server": f"{proto}://{endpoint}",
             "username": f"{u}-session-{salt}",
@@ -73,70 +60,49 @@ async def run_session(browser, session_id, url, proxy):
         )
         context.set_default_timeout(SESSION_TIMEOUT * 1000)
         page = await context.new_page()
-        await page.route("**/*", main_page_optimize)
+        await page.route("**/*", optimize)
+        
+        first_domain = None
+        second_domain_detected = asyncio.Event()
 
-        popup_detected = asyncio.Event()
+        def on_request(request):
+            nonlocal first_domain
+            try:
+                domain = urlparse(request.url).netloc
+                if not domain:
+                    return
+                if first_domain is None:
+                    first_domain = domain
+                    return
+                if domain != first_domain:
+                    second_domain_detected.set()
+            except Exception:
+                pass
 
-        def handle_popup(popup):
-            async def monitor_popup():
-                try:
-                    await popup.route("**/*", popup_strict_optimize)
-                    await popup.wait_for_load_state("domcontentloaded", timeout=6000)
-                    await asyncio.sleep(random.uniform(3.0, 4.0))
-                    popup_detected.set()
-                except Exception:
-                    pass
-            asyncio.create_task(monitor_popup())
+        page.on("request", on_request)
 
-        context.on("page", handle_popup)
-
+        await page.goto(url, wait_until="commit", timeout=SESSION_TIMEOUT * 1000)
+        
         try:
-            await page.goto(url, wait_until="domcontentloaded", timeout=8000)
-        except Exception as e:
-            fail_reason = "PageLoadError"
-            raise e
-
-        await asyncio.sleep(1.5)
-
-        try:
-            await page.mouse.wheel(0, random.randint(200, 400))
-            await asyncio.sleep(0.8)
-        except Exception:
-            pass
-
-        try:
-            safe_spots = [(100, 300), (300, 500), (200, 700), (150, 450)]
-            for _ in range(2):
-                click_x, click_y = random.choice(safe_spots)
-                await page.mouse.click(click_x, click_y)
-                await asyncio.sleep(0.4)
-        except Exception:
-            pass
-
-        try:
-            await asyncio.wait_for(popup_detected.wait(), timeout=7.0)
-            ad_shown = True
+            await asyncio.wait_for(second_domain_detected.wait(), timeout=SESSION_TIMEOUT)
         except asyncio.TimeoutError:
-            fail_reason = "PopupTimeout (No Ad Filled)"
-            ad_shown = False
+            pass
 
-        if ad_shown:
+        if second_domain_detected.is_set():
             async with counter_lock:
                 success_count += 1
-                print(f"[Session {session_id}] SUCCESS | OK: {success_count} | FAIL: {fail_count}")
+                print(f"[Session {session_id}] SUCCESS | OK: {success_count} | FAIL: {fail_count}", flush=True)
             return True
         else:
             async with counter_lock:
                 fail_count += 1
-                print(f"[Session {session_id}] FAILED [{fail_reason}] | OK: {success_count} | FAIL: {fail_count}")
+                print(f"[Session {session_id}] FAILED (No 2nd Domain) | OK: {success_count} | FAIL: {fail_count}", flush=True)
             return False
 
-    except Exception as e:
-        if fail_reason == "Unknown":
-            fail_reason = type(e).__name__
+    except Exception:
         async with counter_lock:
             fail_count += 1
-            print(f"[Session {session_id}] FAILED [{fail_reason}] | OK: {success_count} | FAIL: {fail_count}")
+            print(f"[Session {session_id}] FAILED | OK: {success_count} | FAIL: {fail_count}", flush=True)
         return False
     finally:
         if context:
@@ -147,19 +113,7 @@ async def main():
     global success_count, fail_count
     session_id = 0
     async with async_playwright() as p:
-        browser = await p.chromium.launch(
-            headless=True,
-            args=[
-                "--disable-popup-blocking",
-                "--no-sandbox",
-                "--disable-setuid-sandbox",
-                "--disable-dev-shm-usage",
-                "--disable-gpu",
-                "--ignore-certificate-errors",
-                "--disable-blink-features=AutomationControlled",
-                "--disable-infobars"
-            ]
-        )
+        browser = await p.chromium.launch(headless=True, args=["--no-sandbox"])
         for batch in range(TOTAL_BATCHES):
             tasks = [
                 asyncio.wait_for(
@@ -169,7 +123,7 @@ async def main():
                 for _ in range(BATCH_SIZE)
             ]
             await asyncio.gather(*tasks, return_exceptions=True)
-            print(f"--- Batch {batch + 1}/{TOTAL_BATCHES} Complete ---")
+            print(f"--- Batch {batch + 1}/{TOTAL_BATCHES} Complete ---", flush=True)
         await browser.close()
 
 asyncio.run(main())
