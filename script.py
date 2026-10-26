@@ -3,13 +3,14 @@ from urllib.parse import urlparse
 from playwright.async_api import async_playwright
 
 TARGET_URLS = [
-    "http://p.npcad.com/go/506348/758750",
-    "http://p.npcad.com/go/506348/758751"
+    "http://p.npcad.com/go/506538/758940",
+    "http://p.npcad.com/go/506538/758938",
+    "http://p.npcad.com/go/506538/758939"
 ]
 
 # 👇 البروكسي بتاعك هنا
 PROXIES = [
-    "http://qrl3m07935-country-US:97e22fy0f8@lite.flashproxy.io:6969"
+    "http://qrl3m07935:97e22fy0f8@lite.flashproxy.io:6969"
 ]
 
 ANDROID_CHROME_UAS = [
