@@ -3,9 +3,9 @@ from urllib.parse import urlparse
 from playwright.async_api import async_playwright
 
 TARGET_URLS = [
-    "http://p.npcad.com/go/506538/758940",
-    "http://p.npcad.com/go/506538/758938",
-    "http://p.npcad.com/go/506538/758939"
+    "http://p.npcad.com/go/506635/759005",
+    "http://p.npcad.com/go/506635/759006",
+    "http://p.npcad.com/go/506635/759005"
 ]
 
 # 👇 البروكسي بتاعك هنا
@@ -19,7 +19,7 @@ ANDROID_CHROME_UAS = [
 ]
 
 TOTAL_BATCHES = 9999999
-BATCH_SIZE = 100 # جيت هاب يقدر يشيل ده بسهولة
+BATCH_SIZE = 50 # جيت هاب يقدر يشيل ده بسهولة
 SESSION_TIMEOUT = 15
 
 success_count = 0
